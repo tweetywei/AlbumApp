@@ -52,10 +52,13 @@ export default function ImagePickerExample() {
 }
 */
 import React , { useState, useEffect } from 'react';
-import { ScrollView, Alert, Modal, StyleSheet, Text, TouchableHighlight, Pressable, View, Button, Image } from 'react-native';
+import { ScrollView, Alert, Modal, StyleSheet, Text, TouchableHighlight, Pressable, View, Button, Image, TextPropTypes } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
+import { DefaultTheme, Button as PaperButton, IconButton, Provider as PaperProvider }  from 'react-native-paper';
+import sample from './assets/sample.jpeg';
+import { Colors } from 'react-native/Libraries/NewAppScreen';
 
 function Home({ navigation }) {
 
@@ -76,11 +79,26 @@ function Home({ navigation }) {
     console.log(context.ImageDict);
   };
 
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <ImageContext.Consumer>
+        {
+          context=>(
+        <IconButton icon='plus'
+           color="#65ABD4"
+           onPress={() => createAlbum(context)}></IconButton>
+          )
+        }
+        </ImageContext.Consumer>
+      ),
+    });
+  }, [navigation]);
   return (
     <ImageContext.Consumer>
       {
         context=>(
-          <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+          <View style={{ flex: 1, alignItems: 'center'}}>
           <Modal
             animationType="slide"
             transparent={true}
@@ -90,45 +108,34 @@ function Home({ navigation }) {
             }}>
             <View style={styles.centeredView}>
               <View style={styles.modalView}>
-                <Text style={styles.modalText}>Hello World!</Text>
-                <TouchableHighlight
-                  style={{ ...styles.openButton, backgroundColor: '#2196F3' }}
+                <PaperButton
                   onPress={async () => {
                     setModalVisible(false);
                     navigation.navigate('Conference', {editAlbumID: editAlbumID,});
                   }}>
-                  <Text style={styles.textStyle}>Edit Album</Text>
-                </TouchableHighlight>
-
-                <TouchableHighlight
-                  style={{ ...styles.openButton, backgroundColor: '#2196F3' }}
+                  Edit Album
+                </PaperButton>
+                <PaperButton
                   onPress={() => {
                   }}>
-                  <Text style={styles.textStyle}>Display Album</Text>
-                </TouchableHighlight>
-    
-                <TouchableHighlight
-                  style={{ ...styles.openButton, backgroundColor: '#2196F3' }}
+                  Display Album
+                </PaperButton>
+                <PaperButton
                   onPress={() => {
                     setModalVisible(!modalVisible);
                   }}>
-                  <Text style={styles.textStyle}>Hide Modal</Text>
-                </TouchableHighlight>
+                  Hide Modal
+                </PaperButton>
               </View>
             </View>
           </Modal>
-          <Text>Welcome to our Home Screen</Text>
-          <Pressable
+          <View style={{marginVertical: 10}}>
+          <PaperButton
             onPress={() => navigation.navigate('Story')}
-            style={{ backgroundColor: 'plum', padding: 10 }}
           >
-           <Text>Story</Text>
-          </Pressable>
-          <Button
-              onPress={()=>{createAlbum(context)}}
-              title="create new album"
-            />
-         {albums.map(alb => (<Button key={alb.id} title={alb.name} onPress={()=>{editAlbum({...alb}.id)}}/>))}
+          </PaperButton>
+          </View>
+                {albums.map(alb => (<View style={{marginVertical: 10}}><PaperButton key={alb.id} onPress={()=>{editAlbum({...alb}.id)}}>{alb.name}</PaperButton></View>))}
         </View>
         )
       }
@@ -169,10 +176,11 @@ function Conference({ route, navigation }) {
       {context => (
         <ScrollView>
         <View style={styles.container}>
-        <Button
+        <PaperButton
           onPress={()=>{addPhotos(context)}}
-          title="add new photos"
-        />
+        >
+          add new photos
+        </PaperButton>
         {context.ImageDict[editAlbumID].map((img, index) => (<Image key={index} source={{ uri: img }} style={{width: 200, height: 200}} />))}
         </View>
         </ScrollView>
@@ -195,8 +203,8 @@ function App() {
 
   const [state, setState] = useState({"-1":""});
 
-  
   return (
+    <PaperProvider theme={theme}>
     <ImageContext.Provider value=
     {{
       ImageDict: state,
@@ -209,12 +217,17 @@ function App() {
     }}>
      <NavigationContainer>
       <Stack.Navigator>
-        <Stack.Screen name="Home" component={Home} />
+        <Stack.Screen name="Home" component={Home}  options=
+        {{
+          headerTitle: "Configure Albums",
+        }}
+        />
         <Stack.Screen name="Conference" component={Conference} />
         <Stack.Screen name="Story" component={Story} />
       </Stack.Navigator>
     </NavigationContainer>
     </ImageContext.Provider>
+    </PaperProvider>
   );
 }
 
@@ -258,6 +271,16 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
 });
+
+const theme = {
+  ...DefaultTheme,
+  roundness: 2,
+  colors: {
+    ...DefaultTheme.colors,
+    primary: '#3498db',
+    accent: '#f1c40f',
+  },
+};
 
 export default App;
 
