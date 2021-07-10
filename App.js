@@ -52,14 +52,17 @@ export default function ImagePickerExample() {
 }
 */
 import React , { useState, useEffect } from 'react';
-import { Dimensions, ScrollView, Alert, Modal, StyleSheet, Text, TouchableHighlight, Pressable, View, Button, Image, TextPropTypes } from 'react-native';
+import { Dimensions, ScrollView, Alert, Modal, StyleSheet, Text, TouchableHighlight, Pressable, View, Button, Image, TouchableOpacity } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { TextInput, DefaultTheme, Button as PaperButton, IconButton, Provider as PaperProvider }  from 'react-native-paper';
 import sample from './assets/sample.jpeg';
 import { Colors } from 'react-native/Libraries/NewAppScreen';
-
+import {ImageBrowser} from 'expo-image-picker-multiple';
+import * as ImageManipulator from 'expo-image-manipulator';
+import { AssetsSelector } from 'expo-images-picker';
+import { Ionicons } from '@expo/vector-icons';
 function Home({ navigation }) {
 
   const [albums, setAlbums] = useState([]);
@@ -188,6 +191,8 @@ function Conference({ route, navigation }) {
     })();
   }, []);
 
+  let selectPhotos = (context) => {navigation.navigate('ImageBrowserPage', {editAlbumID: editAlbumID})};
+
   let addPhotos = async (context) => {
     let result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.All,
@@ -207,7 +212,7 @@ function Conference({ route, navigation }) {
         <ScrollView>
         <View style={styles.container}>
         <PaperButton
-          onPress={()=>{addPhotos(context)}}
+          onPress={()=>{selectPhotos(context)}}
         >
           add new photos
         </PaperButton>
@@ -225,6 +230,69 @@ function Story() {
       <Text>Our Story</Text>
     </View>
   );
+}
+
+function ImageBrowserPage({ route, navigation }) {
+  const {editAlbumID} = route.params;
+
+  let  _processImageAsync = async(uri) => {
+    const file = await ImageManipulator.manipulateAsync(
+      uri,
+      [{resize: { width: 1000 }}],
+      { compress: 0.8, format: ImageManipulator.SaveFormat.JPEG }
+    );
+    return file;
+  };
+
+  let imagesCallback = (callback, context) => {
+    callback.then(async (photos) => {
+      const cPhotos = [];
+      for(let photo of photos) {
+        const pPhoto = await _processImageAsync(photo.uri);
+        cPhotos.push(pPhoto.uri);
+        console.log(pPhoto.uri);
+      }
+      context.setDict(editAlbumID, [...context.ImageDict[editAlbumID], ...cPhotos]);
+      navigation.navigate('Conference', {editAlbumID: editAlbumID,});
+    })
+    .catch((e) => console.log(e));
+  };
+
+  let _renderDoneButton = (count, onSubmit) => {
+    if (!count) return null;
+    return <TouchableOpacity title={'Done'} onPress={onSubmit}>
+      <Text onPress={onSubmit}>Done</Text>
+    </TouchableOpacity>
+  }
+
+  let updateHandler = (count, onSubmit) => {
+    navigation.setOptions({
+      headerRight: () => _renderDoneButton(count, onSubmit)
+    });
+  };
+
+  let renderSelectedComponent = (number) => (
+    <View style={styles.countBadge}>
+      <Text>{number}</Text>
+    </View>
+  );
+
+  const emptyStayComponent = <Text>Empty =(</Text>;
+
+    return (
+      <ImageContext.Consumer>
+      {context => (
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+        <ImageBrowser
+          max={4}
+          onChange={updateHandler}
+          callback={(callback)=>{imagesCallback(callback, context)}}
+          renderSelectedComponent={renderSelectedComponent}
+          emptyStayComponent={emptyStayComponent}
+        />
+      </View>)}
+      </ImageContext.Consumer>
+    );
 }
 
 const Stack = createStackNavigator();
@@ -254,6 +322,7 @@ function App() {
         />
         <Stack.Screen name="Conference" component={Conference} />
         <Stack.Screen name="Story" component={Story} />
+        <Stack.Screen name="ImageBrowserPage" component={ImageBrowserPage} />
       </Stack.Navigator>
     </NavigationContainer>
     </ImageContext.Provider>
@@ -306,6 +375,16 @@ const styles = StyleSheet.create({
   modalText: {
     marginBottom: 15,
     textAlign: 'center',
+  },
+  countBadge: {
+    paddingHorizontal: 8.6,
+    paddingVertical: 5,
+    borderRadius: 50,
+    position: 'absolute',
+    right: 3,
+    bottom: 3,
+    justifyContent: 'center',
+    backgroundColor: '#0580FF'
   },
 });
 
