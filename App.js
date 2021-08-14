@@ -57,8 +57,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createStackNavigator } from '@react-navigation/stack';
 import * as ImagePicker from 'expo-image-picker';
 import { TextInput, DefaultTheme, Button as PaperButton, IconButton, Provider as PaperProvider }  from 'react-native-paper';
-import sample from './assets/sample.jpeg';
-import { Colors } from 'react-native/Libraries/NewAppScreen';
+import { ImageEditor } from "expo-image-editor";
 
 function Home({ navigation }) {
 
@@ -175,7 +174,14 @@ function Home({ navigation }) {
 
 function Conference({ route, navigation }) {
   const {editAlbumID} = route.params;
+  const [imageUri, setImageUri] = useState(undefined);
+  const [editorVisible, setEditorVisible] = useState(false);
   console.log(editAlbumID);
+
+  const imageWidth = Dimensions.get('window').width*0.4;
+  const imageHeight = imageWidth;
+  const imagePadding = imageWidth/8;
+  console.log(imageWidth);
 
   useEffect(() => {
     (async () => {
@@ -197,21 +203,51 @@ function Conference({ route, navigation }) {
     });
     console.log(editAlbumID);
     if (!result.cancelled) {
-      context.setDict(editAlbumID, [...context.ImageDict[editAlbumID], result.uri]);
+      // Then set the image uri
+      setImageUri(result.uri);
+      // And set the image editor to be visible
+      setEditorVisible(true);
     }
   };
-
+  React.useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <ImageContext.Consumer>
+        {
+          context=>(
+        <IconButton icon='plus'
+           color="#65ABD4"
+           onPress={() => addPhotos(context)}></IconButton>
+          )
+        }
+        </ImageContext.Consumer>
+      ),
+    });
+  }, [navigation]);
   return (
     <ImageContext.Consumer>
       {context => (
         <ScrollView>
-        <View style={styles.container}>
-        <PaperButton
-          onPress={()=>{addPhotos(context)}}
-        >
-          add new photos
-        </PaperButton>
-        {context.ImageDict[editAlbumID].map((img, index) => (<Image key={index} source={{ uri: img }} style={{width: 200, height: 200}} />))}
+        <View style={{flex:1, flexDirection:'row', flexWrap: 'wrap'}}>
+          <View>
+
+        </View>
+        {context.ImageDict[editAlbumID].map((img, index) => (<View key={index} style={{padding: imagePadding}}><Image source={{ uri: img }} style={{width: imageWidth, height: imageHeight}}/></View>))}
+        <ImageEditor
+            visible={editorVisible}
+            onCloseEditor={() => setEditorVisible(false)}
+            imageUri={imageUri}
+            fixedCropAspectRatio={16 / 9}
+            lockAspectRatio={true}
+            minimumCropDimensions={{
+              width: 100,
+              height: 100,
+            }}
+            onEditingComplete={(result) => {
+              context.setDict(editAlbumID, [...context.ImageDict[editAlbumID], result.uri]);
+            }}
+            mode="full"
+        />
         </View>
         </ScrollView>
       )}
